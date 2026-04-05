@@ -1,0 +1,1 @@
+"""Utilities pour le projet de prédiction spot_id_delta."""
