@@ -17,7 +17,7 @@ class RawData:
 
 
 def _robust_read_csv(path: Path) -> pd.DataFrame:
-    """Lecture robuste pour CSV séparés par `,` ou `;` avec colonnes parfois mal formatées."""
+    """Lecture pour CSV séparés par `,` ou `;` avec colonnes parfois mal formatées."""
     # sep=None + engine=python détecte automatiquement , ; \t ...
     df = pd.read_csv(path, sep=None, engine="python")
     df.columns = [str(c).strip() for c in df.columns]

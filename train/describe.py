@@ -43,7 +43,7 @@ def write_markdown_report(stats: pd.DataFrame, output_path: Path) -> None:
     lines.append("")
     lines.append(_df_to_markdown_no_tabulate(stats, floatfmt=".4f"))
     lines.append("")
-    lines.append("## Lecture métier (interprétation rapide)")
+    lines.append("## Interprétation rapide")
     lines.append("")
     lines.append("- `load_forecast` : proxy direct de la demande; une demande élevée pousse souvent les prix à la hausse.")
     lines.append("- `gas_power_available` : le gaz est fréquemment marginal sur le marché, donc fortement lié au prix spot.")

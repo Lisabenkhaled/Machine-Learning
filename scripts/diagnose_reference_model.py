@@ -31,14 +31,10 @@ from train.io import TARGET_COL, TIME_COL
 from train.metrics import weighted_accuracy
 from train.reference_model import fit_ridge, predict
 
-
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 def apply_positive_clip(y: np.ndarray) -> np.ndarray:
     return np.where(y <= 0, 0.1, y)
-
 
 def sign_stats(y_pred: np.ndarray) -> dict:
     """Statistiques sur les signes des prédictions brutes."""
@@ -61,7 +57,7 @@ def leakage_check(train_df: pd.DataFrame, valid_df: pd.DataFrame) -> dict:
         "train_max": str(t_train_max),
         "valid_min": str(t_valid_min),
         "overlap_detecte": overlap,
-        "statut": "⚠️  FUITE TEMPORELLE DÉTECTÉE" if overlap else "✅  Pas de fuite temporelle",
+        "statut": "FUITE TEMPORELLE DÉTECTÉE" if overlap else "Pas de fuite temporelle",
     }
 
 
@@ -70,10 +66,7 @@ def naive_always_positive_wa(y_true: np.ndarray) -> float:
     y_naive = np.ones_like(y_true)
     return float(weighted_accuracy(y_true, y_naive))
 
-
-# ---------------------------------------------------------------------------
 # Main
-# ---------------------------------------------------------------------------
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Diagnostic Ridge : raw vs calibré + vérification look-ahead.")
@@ -92,14 +85,10 @@ def main() -> None:
 
     y_valid = valid_df[TARGET_COL].to_numpy(dtype=float)
 
-    # ------------------------------------------------------------------
     # 1) Vérification look-ahead bias
-    # ------------------------------------------------------------------
     leak = leakage_check(train_df, valid_df)
 
-    # ------------------------------------------------------------------
     # 2) Entraînement Ridge (alpha fixe)
-    # ------------------------------------------------------------------
     model, _ = fit_ridge(
         train_df,
         valid_df,
@@ -110,29 +99,21 @@ def main() -> None:
     y_raw = valid_pred_df[TARGET_COL].to_numpy(dtype=float)
     y_clipped = apply_positive_clip(y_raw)
 
-    # ------------------------------------------------------------------
     # 3) Métriques RAW (sans contrainte)
-    # ------------------------------------------------------------------
     wa_raw = float(weighted_accuracy(y_valid, y_raw))
     rmse_raw = float(np.sqrt(np.mean((y_valid - y_raw) ** 2)))
     mae_raw = float(np.mean(np.abs(y_valid - y_raw)))
     signs_raw = sign_stats(y_raw)
 
-    # ------------------------------------------------------------------
     # 4) Métriques CLIPPED (avec contrainte positive_clip)
-    # ------------------------------------------------------------------
     wa_clip = float(weighted_accuracy(y_valid, y_clipped))
     rmse_clip = float(np.sqrt(np.mean((y_valid - y_clipped) ** 2)))
     mae_clip = float(np.mean(np.abs(y_valid - y_clipped)))
 
-    # ------------------------------------------------------------------
     # 5) Baseline naïve always-positive (plancher de comparaison)
-    # ------------------------------------------------------------------
     wa_naive = naive_always_positive_wa(y_valid)
 
-    # ------------------------------------------------------------------
-    # 6) Interprétation automatique
-    # ------------------------------------------------------------------
+    # 6) Interprétation 
     delta_wa = wa_clip - wa_raw
 
     if wa_raw >= wa_clip - 0.005:
@@ -150,16 +131,14 @@ def main() -> None:
         )
     else:
         interpretation = (
-            f"⚠️  Le Ridge brut obtient une WA de {wa_raw:.4f}, en dessous de la baseline naïve ({wa_naive:.4f}). "
+            f"Le Ridge brut obtient une WA de {wa_raw:.4f}, en dessous de la baseline naïve ({wa_naive:.4f}). "
             f"La contrainte positive_clip récupère {delta_wa:.4f} points. "
             "Cela suggère que le modèle Ridge n'apprend pas de signal utile au-delà du biais "
             "haussier du marché. Envisager : enrichir les features, élargir la grille alpha, "
             "ou reconsidérer la formulation du problème."
         )
 
-    # ------------------------------------------------------------------
     # 7) Rapport markdown
-    # ------------------------------------------------------------------
     lines = [
         "# Diagnostic du modèle de référence Ridge\n",
         "## 1) Vérification look-ahead bias (fuite temporelle)\n",
@@ -182,18 +161,18 @@ def main() -> None:
 
     # Conclusion sur ce qu'il faut retenir
     if not leak["overlap_detecte"]:
-        lines.append("- ✅ Pas de fuite temporelle : le split train/validation est correct.")
+        lines.append("- Pas de fuite temporelle : le split train/validation est correct.")
     else:
-        lines.append("- ⚠️  Fuite temporelle détectée : revoir le split.")
+        lines.append("- Fuite temporelle détectée : revoir le split.")
 
     if wa_raw > wa_naive:
         lines.append(
-            f"- ✅ Le Ridge sans contrainte ({wa_raw:.4f}) dépasse la baseline naïve ({wa_naive:.4f}) : "
+            f"- Le Ridge sans contrainte ({wa_raw:.4f}) dépasse la baseline naïve ({wa_naive:.4f}) : "
             "le modèle apporte du signal réel."
         )
     else:
         lines.append(
-            f"- ⚠️  Le Ridge sans contrainte ({wa_raw:.4f}) ne dépasse pas la baseline naïve ({wa_naive:.4f}) : "
+            f"- Le Ridge sans contrainte ({wa_raw:.4f}) ne dépasse pas la baseline naïve ({wa_naive:.4f}) : "
             "la WA observée précédemment était portée par la contrainte de positivité, pas par le modèle."
         )
 
@@ -218,7 +197,6 @@ def main() -> None:
     print(interpretation)
     print()
     print(f"Rapport écrit : {out_path}")
-
 
 if __name__ == "__main__":
     main()
