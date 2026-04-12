@@ -34,4 +34,3 @@ MANIFEST
 
 # Data (si tu ne veux pas tracker les CSV générés)
 data/processed/*.csv
-data/processed/*.md
